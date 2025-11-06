@@ -1,0 +1,84 @@
+Design a system that replicates a working of a banking system. It will contain multiple banks and branches, a customer can open a savings account or can take a loan at an interest rate of 12%, can view his account, transactions and loan details (such as loan pending, interest to be paid this year etc), a customer can perform various actions such as deposit and withdraw cash, repay loan, take a loan, etc 
+* List all the features
+* Design a database ER diagram and DB Design
+* list all the APIs
+* Implement all APIs
+
+=============================================================================================================================================================
+****List of Functions**********
+_____For users__________
+1. open account - (account opening form)
+    a machine generated unique ac number, takes input of basic information (name, phn no, address, ), provides with unique id and also makes an internal account with 0 balance or with provided balance value 
+2. apply for loan - 
+    generate a req, allot a loan account, take a starting date, an ending date, ROI - 12%, calculate interest payable per month, or lumpsum, with principal payback
+3. view account - 
+    fetch all the info from the db, basic + balance +loan accounts
+4. transactions - 
+    pay amount to an account, recieve payment from an account, physical cash withdrawal - through bank or atm (reduces balance) physical cash deposit - through bank or atm (adds into balance), online debit/credit
+5. loan details - 
+    when user asks for loan details all the info - majorly loan a/c no, loan amount, prinicipal + interest, timeline everything is displayed
+    display transactions - of repayment, balance principal + interest to be paid this year
+6. repay loan - 
+    reduce loan principal amount when repayment is done - store date and amount of repayment
+
+
+______For Banking System Admin____________
+
+1. creation/deletion of branches : 
+    store info like - name, address, ifsc, helpline no, email id 
+2. view branch list
+
+===========================================================================================================================================================
+Entitites: 
+1. Bank - 
+    -bank name
+
+2. Branches : 
+    bank name
+    branch
+    address {can be composite}
+    mobile no.
+    email id
+    ifsc code {fk}
+
+3. user : 
+    a/c no {machine generated}
+    name
+    occupation
+    address {can be composite}
+    customer id {machine generated} {fk}
+    a/c opening date
+    mobile no. 
+    email
+    bank_ifsc
+    pan no
+    a/c balance
+
+
+4. loan : 
+    user a/c no
+    user customer id {fk}
+    loan a/c no
+    loan date
+    loan return date
+    ROI
+    principal
+    loan branch ifsc {FK}
+
+5. Transaction table
+    transaction id
+    transcation timestamp
+    transaction from: customer id
+    type of transaction : credit/debit
+    mode of transaction : offline/online
+    transaction kind: loan/ normal
+    --loan account no: if transaction is of repayment
+    account_id 
+    channel of transaction {online} : mobile/net-banking
+    balance after transaction
+    transaction amount
+    transaction to: a/c no|| customer id + _ + bank name
+    reason (optional)
+
+
+*************** List of Apis***********************
