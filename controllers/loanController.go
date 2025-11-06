@@ -96,7 +96,7 @@ func CreateLoan(c *gin.Context) {
 }
 
 func DeleteLoan(c *gin.Context) {
-	LoanAccNo := c.Param("loanAccNo")
+	LoanAccNo := c.Param("LoanAccNo")
 	var loan models.Loan
 
 	// Find the loan
@@ -122,7 +122,7 @@ func DeleteLoan(c *gin.Context) {
 
 func LoanDetails(c *gin.Context) {
 	var loan models.Loan
-	LoanAccNo := c.Param("loanAccNo")
+	LoanAccNo := c.Param("LoanAccNo")
 
 	if err := database.DB.Raw("SELECT * FROM loans WHERE pk_acc_no = ?", LoanAccNo).Scan(&loan).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

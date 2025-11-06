@@ -10,8 +10,9 @@ func AdminRoutes(r *gin.Engine) {
 	admin := r.Group("/admin")
 	{
 		admin.POST("/bank/create", controllers.CreateBank)
-		admin.POST("/branches/create", controllers.CreateBankBranch)
+		admin.POST("/branch/create", controllers.CreateBankBranch)
 		admin.DELETE("/bank/:BankId", controllers.DeleteBank)
-		admin.DELETE("/branches/:BranchId", controllers.DeleteBankBranch)
+		admin.DELETE("/branch/:BranchId", controllers.DeleteBankBranch)
+		admin.GET("/branch/:BankId", controllers.DisplayBranches)
 	}
 }

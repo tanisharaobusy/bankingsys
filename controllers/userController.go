@@ -113,17 +113,17 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	uniqAccNo := AccNoGenerator(user.Bank_IFSC, user.Bank_Branch_Id)
+	uniqAccNo := AccNoGenerator(user.Bank_IFSC, user.FK_Bank_Branch_Id)
 	user.Acc_No = uniqAccNo
-	uniqCustId := CustomerIdGenerator(user.Bank_Branch_Id)
-	user.Customer_Id = uniqCustId
+	uniqCustId := CustomerIdGenerator(user.FK_Bank_Branch_Id)
+	user.PK_Customer_Id = uniqCustId
 	//db handling through GORM
 	if err := database.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	savingAcc, err := CreateSavingsAcc(user.Bank_IFSC, user.Bank_Branch_Id, user.AccOpenDate, user.Acc_No, user.Customer_Id)
+	savingAcc, err := CreateSavingsAcc(user.Bank_IFSC, user.FK_Bank_Branch_Id, user.AccOpenDate, user.Acc_No, user.PK_Customer_Id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -151,10 +151,9 @@ func UserDetails(c *gin.Context) {
 	CustId := c.Param("CustomerId")
 
 	if err := database.DB.Raw(`
-	SELECT users.*, saving_bank_accs.acc_balance 
+	SELECT *
 	FROM users 
-	JOIN saving_bank_accs ON users.pk_customer_id = saving_bank_accs.pk_customer_id 
-	WHERE users.pk_customer_id = ?`, CustId).Scan(&user).Error; err != nil {
+	WHERE pk_customer_id = ?`, CustId).Scan(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

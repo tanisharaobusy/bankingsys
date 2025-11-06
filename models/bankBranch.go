@@ -1,15 +1,14 @@
 package models
 
 type BankBranch struct {
-	Name    string `json:"name"`
-	Bank_Id string `json:"bank_Id"`
-	Branch  string `json:"branch"`
-	Phone   uint   `json:"phone"`
-	//AltPhone       uint   `json:"altPhoneNo"`
-	Email          string `json:"email" `
-	Bank_Branch_Id string `json:"bank_Branch_Id"`
-	Address        string `json:"address"`
-	Bank_IFSC      string `json:"bank_IFSC"`
+	Name              string `json:"name"`
+	FK_Bank_Id        string `json:"bank_Id"`
+	Branch            string `json:"branch"`
+	Phone             uint   `json:"phone"`
+	Email             string `json:"email" `
+	PK_Bank_Branch_Id string `json:"bank_Branch_Id"`
+	Address           string `json:"address"`
+	Bank_IFSC         string `json:"bank_IFSC"`
 }
 
 // //SAMPLE REQUEST

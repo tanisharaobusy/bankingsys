@@ -7,11 +7,11 @@ import (
 )
 
 func LoanRoutes(r *gin.Engine) {
-	loan := r.Group("/loan")
+	loan := r.Group("/loans")
 	{
 		loan.POST("/create", controllers.CreateLoan)
-		loan.DELETE("/bank/:Cust_Id", controllers.DeleteLoan)
-		loan.GET("/details/:loanAccNo", controllers.LoanDetails)
+		loan.DELETE("/close/:LoanAccNo", controllers.DeleteLoan)
+		loan.GET("/details/:LoanAccNo", controllers.LoanDetails)
 
 	}
 }

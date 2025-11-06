@@ -102,11 +102,11 @@ func CreateBankBranch(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	uniqBankId := BankBranchIdGenerator(bankBranch.Name, bankBranch.Branch, bankBranch.Bank_Id)
-	bankBranch.Bank_Branch_Id = uniqBankId
+	uniqBankId := BankBranchIdGenerator(bankBranch.Name, bankBranch.Branch, bankBranch.FK_Bank_Id)
+	bankBranch.PK_Bank_Branch_Id = uniqBankId
 	uniqBankIfsc := BankBranchIFSC(bankBranch.Name)
 	bankBranch.Bank_IFSC = uniqBankIfsc
-	log.Println("create bank branch called, bank id: ", bankBranch.Bank_Id)
+	log.Println("create bank branch called, bank id: ", bankBranch.FK_Bank_Id)
 	//db handling through GORM
 	if err := database.DB.Create(&bankBranch).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -128,18 +128,19 @@ func DeleteBankBranch(c *gin.Context) {
 }
 
 func DisplayBranches(c *gin.Context) {
-	var branch []models.BankBranch
+	var branches []models.BankBranch
 	bankId := c.Param("BankId")
 
-	if err := database.DB.Raw("SELECT * FROM bank_branches WHERE bank_id = ?", bankId).Scan(&branch).Error; err != nil {
+	// Fetch all branches for given bank ID
+	if err := database.DB.Where("fk_bank_id = ?", bankId).Find(&branches).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if len(branch) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"message": "No branches found"})
+	if len(branches) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No branches found for this bank"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Branches": branch})
+	c.JSON(http.StatusOK, gin.H{"branches": branches})
 }

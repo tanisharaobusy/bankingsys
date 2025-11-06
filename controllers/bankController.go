@@ -60,8 +60,8 @@ func CreateBank(c *gin.Context) {
 		return
 	}
 	uniqBankId := BankIdGenerator(bank.Name)
-	bank.Bank_Id = uniqBankId
-	log.Println("create bank called, bank id: ", bank.Bank_Id)
+	bank.PK_Bank_Id = uniqBankId
+	log.Println("create bank called, bank id: ", bank.PK_Bank_Id)
 	//db handling through GORM
 	if err := database.DB.Create(&bank).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

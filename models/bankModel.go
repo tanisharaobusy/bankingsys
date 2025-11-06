@@ -1,6 +1,6 @@
 package models
 
 type Bank struct {
-	Name           string `json:"name"`
-	Bank_Id        string `json:"bankId"`
+	Name       string `json:"name"`
+	PK_Bank_Id string `json:"bankId"`
 }

@@ -6,6 +6,6 @@ type Transaction struct {
 	FK_Customer_Id string  `json:"customer_id" gorm:"foreignKey"`
 	Type           string  `json:"type"`
 	Mode           string  `json:"mode"`
-	Recipient     string  `json:"recipient"`
+	Recipient      string  `json:"recipient"`
 	Amount         float64 `json:"amount"`
 }

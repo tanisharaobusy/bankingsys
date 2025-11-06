@@ -24,6 +24,9 @@ func InitDB() {
 	DB.AutoMigrate(&models.User{})
 	DB.AutoMigrate(&models.Loan{})
 	DB.AutoMigrate(&models.Transaction{})
+	DB.AutoMigrate(&models.SavingBankAcc{})
+	DB.AutoMigrate(&models.Bank{})
+	DB.AutoMigrate(&models.BankBranch{})
 
 	fmt.Println("Database migrated")
 }

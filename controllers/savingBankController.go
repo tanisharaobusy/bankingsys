@@ -10,7 +10,7 @@ func CreateSavingsAcc(bankIFSC, bankBranchId, accOpenDate, accNo, custId string)
 	var account models.SavingBankAcc
 
 	account.Bank_IFSC = bankIFSC
-	account.Bank_Branch_Id = bankBranchId
+	account.FK_Bank_Branch_Id= bankBranchId
 	account.AccOpenDate = accOpenDate
 
 	account.Acc_No = accNo
