@@ -10,7 +10,9 @@ func TransRoutes(r *gin.Engine) {
 	trans := r.Group("/transaction")
 	{
 		trans.POST("/credit", controllers.Credit)
+		//trans.POST("/credit/:LoanAccNo", controllers.Credit)
 		trans.POST("/debit", controllers.Debit)
+		trans.POST("/debit/:LoanAccNo", controllers.Debit)
 		trans.GET("/history/:CustomerId", controllers.History)
 	}
 }

@@ -12,6 +12,6 @@ func LoanRoutes(r *gin.Engine) {
 		loan.POST("/create", controllers.CreateLoan)
 		loan.DELETE("/close/:LoanAccNo", controllers.DeleteLoan)
 		loan.GET("/details/:LoanAccNo", controllers.LoanDetails)
-
+		loan.GET("/transH/:LoanAccNo", controllers.LoanHistory)
 	}
 }

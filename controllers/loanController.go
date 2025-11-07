@@ -34,7 +34,7 @@ func loadLoanSerialNo() int {
 }
 
 func saveLoanNo(n int) {
-	os.WriteFile("LoanSerialNotxt", []byte(fmt.Sprintf("%d", n)), 0644)
+	os.WriteFile("LoanSerialNo.txt", []byte(fmt.Sprintf("%d", n)), 0644)
 }
 
 func LoanNoGenerator(custId string) string {
@@ -91,6 +91,16 @@ func CreateLoan(c *gin.Context) {
 		return
 	}
 
+	var trans models.Transaction
+	trans.FK_Customer_Id = loan.FK_Customer_Id
+	trans.Tran = "Loan"
+	trans.Mode = "Online"
+	trans.Recipient = "Self"
+	trans.Amount = loan.Principal
+
+	c.Set("transaction", trans)
+	c.Set("Loan", loan)
+	Credit(c)
 	c.JSON(http.StatusOK, gin.H{"Loan account": loan})
 
 }
@@ -132,5 +142,20 @@ func LoanDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Loan detail for account: " + LoanAccNo: loan,
 	})
+
+}
+
+func SaveLoanTrans(loanId string, transId string) int {
+	var loanTrans models.LoanTrans
+	loanTrans.FK_Trans_Id = transId
+	loanTrans.PK_Loan_Id = loanId
+
+	if err := database.DB.Create(&loanTrans).Error; err != nil {
+		return -1
+	}
+	return 0
+}
+
+func LoanHistory(c *gin.Context) {
 
 }

@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"fmt"
+	"log"
+
 	//"golang-banking-management-system/controllers"
+
 	"golang-banking-management-system/database"
 	"golang-banking-management-system/models"
 	"net/http"
@@ -73,11 +76,44 @@ func TransNoGenerator(custId, typeTrans string) string {
 
 func Credit(c *gin.Context) {
 	var trans models.Transaction
-	var user models.User
-	if err := c.ShouldBindJSON(&trans); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	transaction, exists := c.Get("transaction")
+	if !exists {
+		log.Println("error in 82")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction not found"})
 		return
 	}
+
+	if t, ok := transaction.(models.Transaction); ok {
+		fmt.Println("Transaction:", t)
+		trans = t
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
+		return
+	}
+
+	var user models.User
+	var loan models.Loan
+	loanNo, exists := c.Get("Loan")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Loan Account not found"})
+		return
+	}
+
+	if l, ok := loanNo.(models.Loan); ok {
+		fmt.Println("Loan:", l)
+		loan.PK_Acc_No = l.PK_Acc_No
+	} else {
+		fmt.Println("line 107")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
+		return
+	}
+
+	// if err := c.ShouldBindJSON(&trans); err != nil {
+	// 	log.Println("error in 112")
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// 	return
+	// }
 
 	if err := database.DB.Where("pk_customer_id = ?", trans.FK_Customer_Id).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -89,6 +125,7 @@ func Credit(c *gin.Context) {
 	trans.Created_At = getTime().String()
 
 	if err := database.DB.Create(&trans).Error; err != nil {
+		log.Println("error in 127")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -100,16 +137,35 @@ func Credit(c *gin.Context) {
 	}
 
 	acc.Acc_Balance += trans.Amount
-
-	if err := database.DB.Save(&acc).Error; err != nil {
+	success := 0
+	err := database.DB.Save(&acc).Error
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update balance"})
 		return
+	} else {
+		if loan.PK_Acc_No != "" && trans.Tran == "Loan" {
+			success = SaveLoanTrans(loan.PK_Acc_No, trans.PK_Id)
+			c.Set("tranId", trans.PK_Id)
+		}
+
+	}
+	if success == 0 && trans.Tran == "Loan" {
+		c.JSON(http.StatusOK, gin.H{
+			"transaction":  trans,
+			"new_balance":  acc.Acc_Balance,
+			"loan_account": loan.PK_Acc_No,
+		})
+	} else if success == 0 && trans.Tran == "Normal" {
+		c.JSON(http.StatusOK, gin.H{
+			"transaction": trans,
+			"new_balance": acc.Acc_Balance,
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Couldn't save transaction",
+		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"transaction": trans,
-		"new_balance": acc.Acc_Balance,
-	})
 }
 
 func History(c *gin.Context) {
@@ -132,6 +188,8 @@ func History(c *gin.Context) {
 func Debit(c *gin.Context) {
 	var trans models.Transaction
 	var user models.User
+
+	loanAccNo := c.Param("LoanAccNo")
 	if err := c.ShouldBindJSON(&trans); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -157,11 +215,29 @@ func Debit(c *gin.Context) {
 		return
 	}
 
-	acc.Acc_Balance -= trans.Amount
-
-	if err := database.DB.Create(&trans).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var loan models.Loan
+	if err := database.DB.Where("pk_acc_no= ?", loanAccNo).First(&loan).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Loan account not found"})
 		return
+	}
+	acc.Acc_Balance -= trans.Amount
+	success := 0
+	loan.Principal -= trans.Amount
+	err1 := database.DB.Create(&trans).Error
+	err2 := database.DB.Save(&loan).Error
+	if err2 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update loan pricipal"})
+		return
+	}
+	if err1 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transaction"})
+		return
+	} else {
+		if loanAccNo != "" && trans.Tran == "Loan" {
+			success = SaveLoanTrans(loanAccNo, trans.PK_Id)
+			log.Println(success)
+		}
+
 	}
 
 	if err := database.DB.Save(&acc).Error; err != nil {
@@ -169,8 +245,20 @@ func Debit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"transaction": trans,
-		"new_balance": acc.Acc_Balance,
-	})
+	if trans.Tran == "Loan" {
+		c.JSON(http.StatusOK, gin.H{
+			"transaction":  trans,
+			"new_balance":  acc.Acc_Balance,
+			"loan_account": loanAccNo,
+		})
+	} else if trans.Tran == "Normal" {
+		c.JSON(http.StatusOK, gin.H{
+			"transaction": trans,
+			"new_balance": acc.Acc_Balance,
+		})
+	} else if success == -1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Couldn't save transaction",
+		})
+	}
 }
