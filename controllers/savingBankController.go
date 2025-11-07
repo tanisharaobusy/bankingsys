@@ -10,7 +10,7 @@ func CreateSavingsAcc(bankIFSC, bankBranchId, accOpenDate, accNo, custId string)
 	var account models.SavingBankAcc
 
 	account.Bank_IFSC = bankIFSC
-	account.FK_Bank_Branch_Id= bankBranchId
+	account.FK_Bank_Branch_Id = bankBranchId
 	account.AccOpenDate = accOpenDate
 
 	account.Acc_No = accNo
@@ -19,8 +19,15 @@ func CreateSavingsAcc(bankIFSC, bankBranchId, accOpenDate, accNo, custId string)
 	account.Acc_Balance = 0
 
 	// Save to DB
-	if err := database.DB.Create(&account).Error; err != nil {
+
+	err := validateStruct(account)
+	if err != nil {
 		return nil, err
+
+	} else {
+		if err := database.DB.Create(&account).Error; err != nil {
+			return nil, err
+		}
 	}
 
 	log.Println("Savings account created successfully!")

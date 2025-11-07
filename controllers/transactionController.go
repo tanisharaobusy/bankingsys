@@ -76,58 +76,72 @@ func TransNoGenerator(custId, typeTrans string) string {
 
 func Credit(c *gin.Context) {
 	var trans models.Transaction
-
-	transaction, exists := c.Get("Transaction")
-	if !exists {
-		log.Println("error in 82")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction not found"})
-		return
-	}
-
-	if t, ok := transaction.(models.Transaction); ok {
-		fmt.Println("Transaction:", t)
-		trans = t
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
-		return
-	}
-
 	var user models.User
 	var loan models.Loan
+
 	loanNo, exists := c.Get("Loan")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Loan Account not found"})
-		return
-	}
-
-	if l, ok := loanNo.(models.Loan); ok {
-		fmt.Println("Loan:", l)
-		loan.PK_Acc_No = l.PK_Acc_No
-	} else {
-		fmt.Println("line 107")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
-		return
-	}
-
-	// if err := c.ShouldBindJSON(&trans); err != nil {
-	// 	log.Println("error in 112")
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
+	// if !exists {
+	// 	// c.JSON(http.StatusInternalServerError, gin.H{"error": "Loan Account not found"})
+	// 	// return
 	// }
+	if exists {
+		transaction, exists := c.Get("Transaction")
+		if !exists {
+			log.Println("error in 82")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction not found"})
+			return
+		}
 
-	if err := database.DB.Where("pk_customer_id = ?", trans.FK_Customer_Id).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
+		if t, ok := transaction.(models.Transaction); ok {
+			fmt.Println("Transaction:", t)
+			trans = t
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
+			return
+		}
+
+		if l, ok := loanNo.(models.Loan); ok {
+			fmt.Println("Loan:", l)
+			loan.PK_Acc_No = l.PK_Acc_No
+		} else {
+			fmt.Println("line 107")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid transaction type"})
+			return
+		}
+
+		if err := database.DB.Where("pk_customer_id = ?", trans.FK_Customer_Id).First(&user).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
+	}
+	if !exists {
+		if err := c.ShouldBindJSON(&trans); err != nil {
+			log.Println("error in 120")
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	trans.Type = "Credit"
 	trans.PK_Id = TransNoGenerator(trans.FK_Customer_Id, trans.Type)
 	trans.Created_At = getTime().String()
 
-	if err := database.DB.Create(&trans).Error; err != nil {
-		log.Println("error in 127")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	fmt.Println("line129: customerId: ", trans.FK_Customer_Id)
+	if !CustomerExists(database.DB, trans.FK_Customer_Id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Customer Id does not exist"})
 		return
+	}
+
+	err1 := validateStruct(trans)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	} else {
+		if err := database.DB.Create(&trans).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	var acc models.SavingBankAcc
@@ -151,7 +165,7 @@ func Credit(c *gin.Context) {
 	}
 	if success == 0 && trans.Tran == "Loan" {
 		c.JSON(http.StatusOK, gin.H{
-			"transaction":  trans,
+			"transaction":  trans.PK_Id,
 			"new_balance":  acc.Acc_Balance,
 			"loan_account": loan.PK_Acc_No,
 		})
@@ -214,31 +228,47 @@ func Debit(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient balance"})
 		return
 	}
-
 	var loan models.Loan
-	if err := database.DB.Where("pk_acc_no= ?", loanAccNo).First(&loan).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Loan account not found"})
-		return
-	}
-	acc.Acc_Balance -= trans.Amount
 	success := 0
-	loan.TotalPay -= trans.Amount
-	err1 := database.DB.Create(&trans).Error
-	err2 := database.DB.Save(&loan).Error
-	if err2 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update loan pricipal"})
-		return
-	}
-	if err1 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transaction"})
-		return
-	} else {
-		if loanAccNo != "" && trans.Tran == "Loan" {
-			success = SaveLoanTrans(loanAccNo, trans.PK_Id)
-			log.Println(success)
+	if loanAccNo != "" {
+
+		if err := database.DB.Where("pk_acc_no= ?", loanAccNo).First(&loan).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Loan account not found"})
+			return
 		}
 
+		loan.TotalPay -= trans.Amount
+		trans.Tran = "Loan"
+		err1 := database.DB.Create(&trans).Error
+		if err2 := database.DB.Exec(
+			"UPDATE loans SET total_pay = total_pay - ? WHERE pk_acc_no = ?",
+			trans.Amount, loan.PK_Acc_No,
+		).Error; err2 != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to update loan principal: " + err2.Error(),
+			})
+			return
+		}
+
+		// if err2 := database.DB.Save(&loan).Error; err2 != nil {
+		// 	//fmt.Println("244")
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update loan pricipal"+ err2.Error()})
+		// 	return
+		// }
+		if err1 != nil {
+			fmt.Println("249")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transaction"})
+			return
+		} else {
+			if loanAccNo != "" && trans.Tran == "Loan" {
+				success = SaveLoanTrans(loan.PK_Acc_No, trans.PK_Id)
+				log.Println(success)
+			}
+
+		}
 	}
+
+	acc.Acc_Balance -= trans.Amount
 
 	if err := database.DB.Save(&acc).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update balance"})
@@ -253,8 +283,8 @@ func Debit(c *gin.Context) {
 		})
 	} else if trans.Tran == "Normal" {
 		c.JSON(http.StatusOK, gin.H{
-			"transaction": trans,
-			"new_balance": acc.Acc_Balance,
+			"transaction_id": trans.PK_Id,
+			"new_balance":    acc.Acc_Balance,
 		})
 	} else if success == -1 {
 		c.JSON(http.StatusBadRequest, gin.H{

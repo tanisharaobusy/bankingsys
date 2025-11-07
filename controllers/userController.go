@@ -117,10 +117,22 @@ func CreateUser(c *gin.Context) {
 	user.Acc_No = uniqAccNo
 	uniqCustId := CustomerIdGenerator(user.FK_Bank_Branch_Id)
 	user.PK_Customer_Id = uniqCustId
-	//db handling through GORM
-	if err := database.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	user.AccOpenDate = getDate()
+
+	if !BankBranchExists(database.DB, user.FK_Bank_Branch_Id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Branch Id does not exist"})
 		return
+	}
+	//db handling through GORM
+	err := validateStruct(user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	} else {
+		if err := database.DB.Create(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	savingAcc, err := CreateSavingsAcc(user.Bank_IFSC, user.FK_Bank_Branch_Id, user.AccOpenDate, user.Acc_No, user.PK_Customer_Id)
@@ -131,8 +143,10 @@ func CreateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":           user,
-		"savingsAccount": savingAcc,
+		"acc_no":             user.Acc_No,
+		"customerId":         user.PK_Customer_Id,
+		"acc_open_date":      user.AccOpenDate,
+		"saving_acc_balance": savingAcc.Acc_Balance,
 	})
 
 }

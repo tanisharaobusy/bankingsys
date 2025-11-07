@@ -97,6 +97,7 @@ func BankBranchIFSC(name string) string {
 
 func CreateBankBranch(c *gin.Context) {
 	log.Println("create bank branch called")
+
 	var bankBranch models.BankBranch
 	if err := c.ShouldBindJSON(&bankBranch); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -106,14 +107,29 @@ func CreateBankBranch(c *gin.Context) {
 	bankBranch.PK_Bank_Branch_Id = uniqBankId
 	uniqBankIfsc := BankBranchIFSC(bankBranch.Name)
 	bankBranch.Bank_IFSC = uniqBankIfsc
-	log.Println("create bank branch called, bank id: ", bankBranch.FK_Bank_Id)
-	//db handling through GORM
-	if err := database.DB.Create(&bankBranch).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if !BankExists(database.DB, bankBranch.FK_Bank_Id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Bank Id does not exist"})
 		return
 	}
 
-	c.JSON(http.StatusOK, bankBranch)
+	log.Println("create bank branch called, bank id: ", bankBranch.FK_Bank_Id)
+	//db handling through GORM
+
+	err := validateStruct(bankBranch)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	} else {
+		if err := database.DB.Create(&bankBranch).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"bank_branch_id":   bankBranch.PK_Bank_Branch_Id,
+		"bank_branch_ifsc": bankBranch.Bank_IFSC,
+	})
 	log.Println("status sent")
 
 }

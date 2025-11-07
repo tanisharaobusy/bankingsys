@@ -86,8 +86,25 @@ func CreateLoan(c *gin.Context) {
 	uniqLoanNo := LoanNoGenerator(loan.FK_Customer_Id)
 	loan.PK_Acc_No = uniqLoanNo
 	loan.AccOpenDate = getDate()
+	if !CustomerExists(database.DB, loan.FK_Customer_Id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Bank Id does not exist"})
+		return
+	}
+	if !BankBranchExists(database.DB, loan.Bank_Branch_Id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Branch Id does not exist"})
+		return
+	}
+
+	layout := "2006-01-02" // correct reference format
+	retDate, err := time.Parse(layout, loan.ReturnDate)
+	if err != nil {
+		fmt.Println("Error parsing return date:", err)
+	}
+
+	loan.ReturnDate = retDate.Format("2006-01-02") // convert back to string
 	loan.Roi = 12
-	layout := "2006-01-02" // layout must match your date format
+
+	// layout must match your date format
 	t1, err1 := time.Parse(layout, loan.AccOpenDate)
 	t2, err2 := time.Parse(layout, loan.ReturnDate)
 
@@ -103,9 +120,15 @@ func CreateLoan(c *gin.Context) {
 	loan.Interest = rounded
 	loan.TotalPay = loan.Principal + loan.Interest
 	//db handling through GORM
-	if err := database.DB.Create(&loan).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err3 := validateStruct(loan)
+	if err3 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	} else {
+		if err := database.DB.Create(&loan).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	var trans models.Transaction
@@ -119,7 +142,7 @@ func CreateLoan(c *gin.Context) {
 	log.Println("Loan set in c")
 	c.Set("Loan", loan)
 	Credit(c)
-	c.JSON(http.StatusOK, gin.H{"Loan account": loan})
+	//c.JSON(http.StatusOK, gin.H{"Loan account": loan.PK_Acc_No})
 
 }
 
