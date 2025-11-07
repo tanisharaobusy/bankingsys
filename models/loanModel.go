@@ -9,4 +9,6 @@ type Loan struct {
 	ReturnDate     string  `json:"returnDate"`
 	Principal      float64 `json:"principal"`
 	Roi            float64 `json:"roi"`
+	Interest       float64 `json:"interest"`
+	TotalPay       float64 `json:"totalPay"`
 }

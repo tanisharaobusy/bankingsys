@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"fmt"
+	"log"
+
 	//"golang-banking-management-system/controllers"
 	"golang-banking-management-system/database"
 	"golang-banking-management-system/models"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -84,7 +87,21 @@ func CreateLoan(c *gin.Context) {
 	loan.PK_Acc_No = uniqLoanNo
 	loan.AccOpenDate = getDate()
 	loan.Roi = 12
+	layout := "2006-01-02" // layout must match your date format
+	t1, err1 := time.Parse(layout, loan.AccOpenDate)
+	t2, err2 := time.Parse(layout, loan.ReturnDate)
 
+	if err1 != nil || err2 != nil {
+		fmt.Println("Error parsing dates:", err1, err2)
+		return
+	}
+
+	// Find the difference
+	diff := t2.Sub(t1)
+	interest := (loan.Principal * loan.Roi * ((diff.Hours() / 24) / 365)) / 100
+	rounded := math.Round(interest*100) / 100
+	loan.Interest = rounded
+	loan.TotalPay = loan.Principal + loan.Interest
 	//db handling through GORM
 	if err := database.DB.Create(&loan).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -97,8 +114,9 @@ func CreateLoan(c *gin.Context) {
 	trans.Mode = "Online"
 	trans.Recipient = "Self"
 	trans.Amount = loan.Principal
-
-	c.Set("transaction", trans)
+	log.Println("Transaction set in c")
+	c.Set("Transaction", trans)
+	log.Println("Loan set in c")
 	c.Set("Loan", loan)
 	Credit(c)
 	c.JSON(http.StatusOK, gin.H{"Loan account": loan})

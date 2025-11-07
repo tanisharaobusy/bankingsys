@@ -77,7 +77,7 @@ func TransNoGenerator(custId, typeTrans string) string {
 func Credit(c *gin.Context) {
 	var trans models.Transaction
 
-	transaction, exists := c.Get("transaction")
+	transaction, exists := c.Get("Transaction")
 	if !exists {
 		log.Println("error in 82")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction not found"})
@@ -222,7 +222,7 @@ func Debit(c *gin.Context) {
 	}
 	acc.Acc_Balance -= trans.Amount
 	success := 0
-	loan.Principal -= trans.Amount
+	loan.TotalPay -= trans.Amount
 	err1 := database.DB.Create(&trans).Error
 	err2 := database.DB.Save(&loan).Error
 	if err2 != nil {
