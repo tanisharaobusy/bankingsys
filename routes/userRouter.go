@@ -13,5 +13,6 @@ func UserRoutes(r *gin.Engine) {
 		user.DELETE("/delete/:CustomerId", controllers.DeleteUser)
 		user.GET("/:CustomerId", controllers.UserDetails)
 		user.GET("/loan/:CustomerId", controllers.DisplayLoans)
+		user.PUT("/update/:CustomerId", controllers.UpdateUser)
 	}
 }

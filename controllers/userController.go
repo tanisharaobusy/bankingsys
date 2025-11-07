@@ -190,3 +190,37 @@ func DisplayLoans(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"loans details": loan})
 }
+
+func UpdateUser(c *gin.Context) {
+	id := c.Param("CustomerId") 
+
+	var user models.User
+	if err := database.DB.First(&user, "pk_customer_id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var updatedUser models.User
+	if err := c.ShouldBindJSON(&updatedUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if updatedUser.Address != "" {
+		user.Address = updatedUser.Address
+	}
+
+	if updatedUser.Occupation != "" {
+		user.Occupation = updatedUser.Occupation
+	}
+	if updatedUser.Email != "" {
+		user.Email = updatedUser.Email
+	}
+
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "user": user})
+}

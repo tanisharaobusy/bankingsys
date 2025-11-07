@@ -14,5 +14,6 @@ func AdminRoutes(r *gin.Engine) {
 		admin.DELETE("/bank/:BankId", controllers.DeleteBank)
 		admin.DELETE("/branch/:BranchId", controllers.DeleteBankBranch)
 		admin.GET("/branch/:BankId", controllers.DisplayBranches)
+		admin.PUT("/update/:BranchId", controllers.UpdateBranch)
 	}
 }

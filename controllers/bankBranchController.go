@@ -160,3 +160,46 @@ func DisplayBranches(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"branches": branches})
 }
+
+func UpdateBranch(c *gin.Context) {
+	id := c.Param("BranchId")
+	fmt.Println("Updating branch:", id)
+
+	var branch models.BankBranch
+	if err := database.DB.First(&branch, "pk_bank_branch_id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Branch not found"})
+		return
+	}
+
+	var updatedBranch models.BankBranch
+	if err := c.ShouldBindJSON(&updatedBranch); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update only non-zero/non-empty fields
+	if updatedBranch.Bank_IFSC != "" {
+		branch.Bank_IFSC = updatedBranch.Bank_IFSC
+	}
+	if updatedBranch.Phone != 0 {
+		branch.Phone = updatedBranch.Phone
+	}
+
+	// Add more optional updates if needed
+	if updatedBranch.Email != "" {
+		branch.Email = updatedBranch.Email
+	}
+	if updatedBranch.Address != "" {
+		branch.Address = updatedBranch.Address
+	}
+
+	if err := database.DB.Save(&branch).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update branch: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Branch updated successfully",
+		"branch":  branch,
+	})
+}
