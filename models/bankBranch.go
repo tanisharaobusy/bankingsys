@@ -6,7 +6,7 @@ type BankBranch struct {
 	Branch            string `json:"branch"`
 	Phone             uint   `json:"phone"`
 	Email             string `json:"email" `
-	PK_Bank_Branch_Id string `json:"bank_Branch_Id"`
+	PK_Bank_Branch_Id string `json:"bank_Branch_Id" gorm:"primaryKey"`
 	Address           string `json:"address"`
 	Bank_IFSC         string `json:"bank_IFSC"`
 }
