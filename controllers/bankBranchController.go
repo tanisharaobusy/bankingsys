@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	//"gorm.io/gorm"
+
 )
 
 func saveBankBranchNumber(n int) {
@@ -147,7 +147,6 @@ func DisplayBranches(c *gin.Context) {
 	var branches []models.BankBranch
 	bankId := c.Param("BankId")
 
-	// Fetch all branches for given bank ID
 	if err := database.DB.Where("fk_bank_id = ?", bankId).Find(&branches).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -176,8 +175,6 @@ func UpdateBranch(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Update only non-zero/non-empty fields
 	if updatedBranch.Bank_IFSC != "" {
 		branch.Bank_IFSC = updatedBranch.Bank_IFSC
 	}
@@ -185,7 +182,6 @@ func UpdateBranch(c *gin.Context) {
 		branch.Phone = updatedBranch.Phone
 	}
 
-	// Add more optional updates if needed
 	if updatedBranch.Email != "" {
 		branch.Email = updatedBranch.Email
 	}
